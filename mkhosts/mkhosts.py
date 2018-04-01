@@ -4,7 +4,9 @@ import sys
 
 
 def get_by_url(url):
-    # TODO: Allow to source files.
+    if url.startswith('file://'):
+        with open(url[7:]) as f:
+            return f.read()
     import urllib.request
     req = urllib.request.Request(url)
     req.add_header('User-Agent', 'Mozilla/5.0 (X11; Linux x86_64; rv:59.0) Gecko/20100101 Firefox/59.0')
@@ -40,6 +42,20 @@ def is_domain(domain):
     return True
 
 
+def extract_domains_abp(source):
+    domains = []
+    for line in source.split('\n'):
+        trimmed = line.strip()
+        if trimmed.startswith('!'):
+            continue
+        if not trimmed.startswith('||') or not trimmed.endswith('^'):
+            continue
+        url = trimmed[2:-1]
+        if '/' not in url and is_domain(url):
+            domains.append(url)
+    return domains
+
+
 def extract_domains(source):
     domains = []
     for line in source.split('\n'):
@@ -48,6 +64,8 @@ def extract_domains(source):
             continue
         if trimmed.startswith('#'):
             continue
+        if trimmed.startswith('[Adblock Plus'):
+            return extract_domains_abp(source)
 
         splitten = trimmed.split()
         if is_ip(splitten[0]):
@@ -65,30 +83,51 @@ def extract_domains(source):
     return domains
 
 
-def main():
-    if len(sys.argv) < 2:
-        print('At least one file with sources is required.')
-
-    urls = []
-    for file in sys.argv[1:]:
-        with open(file) as f:
-            for line in f:
-                trimmed = line.strip()
-                if len(trimmed) == 0 or trimmed.startswith('#'):
-                    continue
-                urls.append(trimmed)
-
+def download_and_extract(sources, log_tag='blacklisted'):
     domains = set()
-    status_format = '\rCollected {} domains. Processed {}/{} sources.'
-    for i, url in enumerate(urls):
-        print(status_format.format(len(domains), i, len(urls)), end='', file=sys.stderr)
+    status_format = '\rCollected {} {} domains. Processed {}/{} sources.'
+    print(status_format.format(log_tag, len(domains), 0, len(sources)), end='', file=sys.stderr)
+    for i, url in enumerate(sources):
         try:
             domains.update(extract_domains(get_by_url(url)))
         except Exception as e:
             print('\nFailed to process list', url, file=sys.stderr)
             print(type(e).__qualname__ + ': ' + str(e))
+        print(status_format.format(log_tag, len(domains), i + 1, len(sources)), end='', file=sys.stderr)
+    print(file=sys.stderr)
+    return domains
 
-    for domain in domains:
+
+def main():
+    whitelists = []
+    blacklists = []
+
+    # Parse arguments into two lists above.
+    target_list = blacklists
+    for arg in sys.argv[1:]:
+        if arg == '-w':
+            target_list = whitelists
+            continue
+        with open(arg) as f:
+            for line in f:
+                trimmed = line.strip()
+                if len(trimmed) == 0 or trimmed.startswith('#'):
+                    continue
+                target_list.append(trimmed)
+        target_list = blacklists
+    if target_list is whitelists:
+        print('Missing value to -w argument', file=sys.stderr)
+        return
+    if len(blacklists) == 0:
+        print('No sources!', file=sys.stderr)
+        return
+
+    blacklisted = download_and_extract(blacklists)
+    whitelisted = []
+    if len(whitelists) != 0:
+        whitelisted = download_and_extract(whitelists, 'whitelisted')
+
+    for domain in blacklisted.difference(whitelisted):
         print('0.0.0.0', domain)
 
 

@@ -7,14 +7,15 @@ download and merge big amount of public lists.
 Usage
 -------
 
-Populate `sources.list` with hosts files, domainlists URLs and run `mkhosts
-sources.list`.  Generated file will be written to stdout.
+Populate `sources.list` with hosts files, domain lists URLs and run 
+`mkhosts sources.list`.  Generated file will be written to stdout.
 
-Room for improvement
-----------------------
+- You can reference local files using `file://` scheme.
 
-mkhosts script is just 97 lines of code written in few minutes. It's possible
-to improve it, but I don't have enough time.
+- In addition to parsing hosts and domain lists mkhosts can extract domain-wide
+  ABP rules like these: `||ad.reople.co.kr^` if it detects that input is in ABP
+  format.
 
-- [ ] Allow local files in sources
-- [ ] Allow to use AdBlock Plus domain-wide rules as source
+- You can specify file with whitelists URLs using `-w` argument. If you have 
+  only one local whitelist file - use `<(echo file://whitelist)`.
+
