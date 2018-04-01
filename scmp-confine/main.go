@@ -18,7 +18,21 @@ func confine(syscallIds []seccomp.ScmpSyscall, targetBinaryPath string) {
 	}
 	defer filter.Release()
 
-    filter.AddRule(seccomp.GetSyscallByName("execve"), seccomp.ActAllow)
+    err = filter.SetNoNewPrivsBit(true)
+    if err != nil {
+        fmt.Fprintln(os.Stderr, "Failed to set no_new_privs bit:", err)
+        os.Exit(2)
+    }
+
+    execve, err := seccomp.GetSyscallFromName("execve")
+    if err != nil {
+        panic(err)
+    }
+    err = filter.AddRule(execve, seccomp.ActAllow)
+    if err != nil {
+        fmt.Fprintln(os.Stderr, "Failed to add rule:", err)
+        os.Exit(2)
+    }
 
 	for _, syscall := range syscallIds {
 		err = filter.AddRule(syscall, seccomp.ActAllow)
