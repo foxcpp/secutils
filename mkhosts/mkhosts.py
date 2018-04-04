@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import sys
+import socket 
 
 
 def get_by_url(url):
@@ -15,7 +16,6 @@ def get_by_url(url):
 
 
 def is_ip(addr):
-    import socket
     try:
         socket.inet_pton(socket.AF_INET, addr)
     except socket.error:
@@ -92,7 +92,7 @@ def download_and_extract(sources, log_tag='blacklisted'):
             domains.update(extract_domains(get_by_url(url)))
         except Exception as e:
             print('\nFailed to process list', url, file=sys.stderr)
-            print(type(e).__qualname__ + ': ' + str(e))
+            print(type(e).__qualname__ + ': ' + str(e), file=sys.stderr)
         print(status_format.format(log_tag, len(domains), i + 1, len(sources)), end='', file=sys.stderr)
     print(file=sys.stderr)
     return domains
@@ -126,6 +126,9 @@ def main():
     whitelisted = []
     if len(whitelists) != 0:
         whitelisted = download_and_extract(whitelists, 'whitelisted')
+
+    print('127.0.0.1', socket.gethostname(), 'localhost localhost.localdomain')
+    print('255.255.255 broadcasthost')
 
     for domain in blacklisted.difference(whitelisted):
         print('0.0.0.0', domain)
