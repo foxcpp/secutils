@@ -86,7 +86,7 @@ def extract_domains(source):
 def download_and_extract(sources, log_tag='blacklisted'):
     domains = set()
     status_format = '\rCollected {} {} domains. Processed {}/{} sources.'
-    print(status_format.format(log_tag, len(domains), 0, len(sources)), end='', file=sys.stderr)
+    print(status_format.format(len(domains), log_tag, 0, len(sources)), end='', file=sys.stderr)
     for i, url in enumerate(sources):
         try:
             domains.update(extract_domains(get_by_url(url)))
