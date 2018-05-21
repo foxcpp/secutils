@@ -93,7 +93,7 @@ def download_and_extract(sources, log_tag='blacklisted'):
         except Exception as e:
             print('\nFailed to process list', url, file=sys.stderr)
             print(type(e).__qualname__ + ': ' + str(e), file=sys.stderr)
-        print(status_format.format(log_tag, len(domains), i + 1, len(sources)), end='', file=sys.stderr)
+        print(status_format.format(len(domains), log_tag, i + 1, len(sources)), end='', file=sys.stderr)
     print(file=sys.stderr)
     return domains
 
