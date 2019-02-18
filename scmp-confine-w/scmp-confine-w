@@ -1,0 +1,53 @@
+#!/bin/bash
+
+wrapped_name=scmp-confine
+function wrapped {
+    flags=$1
+    shift
+    exec scmp-confine $flags "$@"
+}
+
+set -euo pipefail
+IFS=$'\n\t'
+
+SCRIPT_PATH=$(dirname "$(realpath ${BASH_SOURCE[0]})")
+SCRIPT_NAME=$(basename "$(realpath ${BASH_SOURCE[0]})")
+
+function path_remove {
+  # Delete path by parts so we can never accidentally remove sub paths
+  PATH=${PATH//":$1:"/":"} # delete any instances in the middle
+  PATH=${PATH/#"$1:"/} # delete any instance at the beginning
+  PATH=${PATH/%":$1"/} # delete any instance in the at the end
+}
+
+IFS=:
+for path in $(sed 's/:/\n/' <<<$PATH); do
+    if [ -x "$path/$SCRIPT_NAME" ]; then
+        path_remove $path
+    fi
+done
+IFS=$'\n\t'
+
+TARGET="$(basename $0)"
+TARGET_ARGS="$@"
+
+if [ "$SCRIPT_NAME" == "$TARGET" ]; then
+    if [ "$#" -le 0 ]; then
+        echo "Usage: $0 <program> [program args...]">&2
+        echo "or"
+        echo "Create symlink to $0 with same name as program, script will look for binary in PATH (after removing itself from candidates)."
+        exit 0
+    fi
+
+    TARGET="$1"
+    shift
+    TARGET_ARGS="$@"
+fi
+
+profile="/etc/$wrapped_name/$(which "$TARGET" | sed 's!/!.!g;s!^.!!')"
+if ! [ -e "$profile" ]; then
+    echo "!!! No profile but symlink exists. Launching without wrapper.">&2
+    exec "$TARGET" "$TARGET_ARGS"
+fi
+#echo "--- Using params from $profile">&2
+eval wrapped $(cat $profile) "$TARGET" "$TARGET_ARGS"
