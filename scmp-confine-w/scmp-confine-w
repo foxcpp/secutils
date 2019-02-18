@@ -2,9 +2,7 @@
 
 wrapped_name=scmp-confine
 function wrapped {
-    flags=$1
-    shift
-    exec scmp-confine $flags "$@"
+    exec scmp-confine "$(sed 's/ /,/g' <<<$flags)" "$@"
 }
 
 set -euo pipefail
@@ -50,4 +48,5 @@ if ! [ -e "$profile" ]; then
     exec "$TARGET" "$TARGET_ARGS"
 fi
 #echo "--- Using params from $profile">&2
-eval wrapped $(cat $profile) "$TARGET" "$TARGET_ARGS"
+flags="$(echo $(cat $profile))"
+eval wrapped "$TARGET" "$TARGET_ARGS"
