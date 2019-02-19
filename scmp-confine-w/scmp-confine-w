@@ -1,9 +1,6 @@
 #!/bin/bash
 
 wrapped_name=scmp-confine
-function wrapped {
-    exec scmp-confine "$(sed 's/ /,/g' <<<$flags)" "$@"
-}
 
 set -euo pipefail
 IFS=$'\n\t'
@@ -27,7 +24,6 @@ done
 IFS=$'\n\t'
 
 TARGET="$(basename $0)"
-TARGET_ARGS="$@"
 
 if [ "$SCRIPT_NAME" == "$TARGET" ]; then
     if [ "$#" -le 0 ]; then
@@ -39,7 +35,6 @@ if [ "$SCRIPT_NAME" == "$TARGET" ]; then
 
     TARGET="$1"
     shift
-    TARGET_ARGS="$@"
 fi
 
 profile="/etc/$wrapped_name/$(which "$TARGET" | sed 's!/!.!g;s!^.!!')"
@@ -49,4 +44,5 @@ if ! [ -e "$profile" ]; then
 fi
 #echo "--- Using params from $profile">&2
 flags="$(echo $(cat $profile))"
-eval wrapped "$TARGET" "$TARGET_ARGS"
+
+exec $wrapped_name "$(sed 's/ /,/g' <<<$flags)" "$TARGET" "$@"
